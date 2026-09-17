@@ -95,17 +95,19 @@ You can select one of six levels for heading.
 
 ## Output data
 
-| Field | Type     | Description                                      |
-| ----- | -------- | ------------------------------------------------ |
-| text  | `string` | header's text                                    |
-| level | `number` | level of header: 1 for H1, 2 for H2 ... 6 for H6 |
+| Field     | Type                         | Description                                      |
+| --------- | ---------------------------- | ------------------------------------------------ |
+| text      | `string`                     | header's text                                    |
+| level     | `number`                     | level of header: 1 for H1, 2 for H2 ... 6 for H6 |
+| alignment | `left \| center \| right`   | horizontal alignment (defaults to `left`)        |
 
 ```json
 {
   "type": "header",
   "data": {
     "text": "Why Telegram is the best messenger",
-    "level": 2
+    "level": 2,
+    "alignment": "center"
   }
 }
 ```

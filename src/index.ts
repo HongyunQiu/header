@@ -6,6 +6,14 @@ import './index.css';
 import { IconH1, IconH2, IconH3, IconH4, IconH5, IconH6, IconHeading } from '@codexteam/icons';
 import { API, BlockTune, PasteEvent } from '@editorjs/editorjs';
 
+export type HeaderAlignment = 'left' | 'center' | 'right';
+
+const ALIGNMENT_ICONS: Record<HeaderAlignment, string> = {
+  left: '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h14M3 8h9M3 12h14M3 16h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  center: '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h14M5.5 8h9M3 12h14M5.5 16h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  right: '<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h14M8 8h9M3 12h14M8 16h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+};
+
 /**
 * @description Tool's input and output data format
 */
@@ -14,6 +22,8 @@ export interface HeaderData {
   text: string;
   /** Header's level from 1 to 6 */
   level: number;
+  /** Header's horizontal alignment */
+  alignment: HeaderAlignment;
 }
 
 /**
@@ -156,13 +166,17 @@ export default class Header {
    * @private
    */
   normalizeData(data: HeaderData | {}): HeaderData {
-    const newData: HeaderData = { text: '', level: this.defaultLevel.number };
+    const newData: HeaderData = { text: '', level: this.defaultLevel.number, alignment: 'left' };
 
     if (this.isHeaderData(data)) {
       newData.text = data.text || '';
   
       if (data.level !== undefined && !isNaN(parseInt(data.level.toString()))) {
         newData.level = parseInt(data.level.toString());
+      }
+
+      if (data.alignment === 'left' || data.alignment === 'center' || data.alignment === 'right') {
+        newData.alignment = data.alignment;
       }
     }
 
@@ -185,7 +199,7 @@ export default class Header {
    * @returns {Array}
    */
   renderSettings(): BlockTune[] {
-    return this.levels.map(level => ({
+    const levelSettings: BlockTune[] = this.levels.map(level => ({
       icon: level.svg,
       label: this.api.i18n.t(`Heading ${level.number}`),
       onActivate: () => this.setLevel(level.number),
@@ -193,6 +207,17 @@ export default class Header {
       isActive: this.currentLevel.number === level.number,
       render: () => document.createElement('div')
     }));
+
+    const alignmentSettings: BlockTune[] = (['left', 'center', 'right'] as HeaderAlignment[]).map(alignment => ({
+      icon: ALIGNMENT_ICONS[alignment],
+      label: this.api.i18n.t(`Align ${alignment}`),
+      onActivate: () => this.setAlignment(alignment),
+      closeOnActivate: true,
+      isActive: this._data.alignment === alignment,
+      render: () => document.createElement('div')
+    }));
+
+    return levelSettings.concat(alignmentSettings);
   }
 
   /**
@@ -204,7 +229,16 @@ export default class Header {
     this.data = {
       level: level,
       text: this.data.text,
+      alignment: this.data.alignment,
     };
+  }
+
+  /**
+   * Set the header's horizontal alignment.
+   */
+  setAlignment(alignment: HeaderAlignment): void {
+    this._data.alignment = alignment;
+    this.applyAlignment();
   }
 
   /**
@@ -241,6 +275,7 @@ export default class Header {
     return {
       text: toolsContent.innerHTML,
       level: this.currentLevel.number,
+      alignment: this._data.alignment,
     };
   }
 
@@ -260,6 +295,7 @@ export default class Header {
   static get sanitize() {
     return {
       level: false,
+      alignment: false,
       text: {},
     };
   }
@@ -282,6 +318,7 @@ export default class Header {
   get data(): HeaderData {
     this._data.text = this._element.innerHTML;
     this._data.level = this.currentLevel.number;
+    this._data.alignment = this.getAlignment(this._data.alignment);
     
     return this._data;
   }
@@ -334,6 +371,8 @@ export default class Header {
     if (data.text !== undefined) {
       this._element.innerHTML = this._data.text || '';
     }
+
+    this.applyAlignment();
   }
 
   /**
@@ -358,6 +397,8 @@ export default class Header {
      */
     tag.classList.add(this._CSS.wrapper);
 
+    tag.style.textAlign = this.getAlignment(this._data.alignment);
+
     /**
      * Make tag editable
      */
@@ -369,6 +410,14 @@ export default class Header {
     tag.dataset.placeholder = this.api.i18n.t(this._settings.placeholder || '');
 
     return tag;
+  }
+
+  private getAlignment(alignment: unknown): HeaderAlignment {
+    return alignment === 'center' || alignment === 'right' ? alignment : 'left';
+  }
+
+  private applyAlignment(): void {
+    this._element.style.textAlign = this.getAlignment(this._data.alignment);
   }
 
   /**
@@ -514,6 +563,7 @@ export default class Header {
       this.data = {
         level,
         text: content.innerHTML,
+        alignment: this.getAlignment(content.style.textAlign),
       };
     }
   }
